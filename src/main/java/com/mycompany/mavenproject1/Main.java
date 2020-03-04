@@ -5,6 +5,15 @@
  */
 package com.mycompany.mavenproject1;
 
+import com.verisec.frejaeid.client.beans.general.SslSettings;
+import com.verisec.frejaeid.client.client.api.AuthenticationClientApi;
+import com.verisec.frejaeid.client.client.impl.AuthenticationClient;
+import com.verisec.frejaeid.client.enums.FrejaEnvironment;
+import com.verisec.frejaeid.client.exceptions.FrejaEidClientInternalException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+
 /**
  *
  * @author Stefan
@@ -14,7 +23,12 @@ public class Main {
         return a + b;
     }
     public static void main(String[] args) {
-        System.out.println("Hello World!");
-        System.out.println("Hello to you too");
+        try {
+            SslSettings sslSettings = SslSettings.create("src/main/resources/test.ks", "123123123", "bellim30.test.verisec.se/certificate.crt");
+            AuthenticationClientApi authenticationClient = AuthenticationClient.create(sslSettings, FrejaEnvironment.TEST).build();
+        } catch (FrejaEidClientInternalException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
     }
 }
