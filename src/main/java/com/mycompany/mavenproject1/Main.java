@@ -5,14 +5,16 @@
  */
 package com.mycompany.mavenproject1;
 
-import com.verisec.frejaeid.client.beans.general.RequestedAttributes;
 import com.verisec.frejaeid.client.beans.general.SslSettings;
 import com.verisec.frejaeid.client.beans.general.SsnUserInfo;
 import com.verisec.frejaeid.client.beans.sign.get.SignResult;
 import com.verisec.frejaeid.client.beans.sign.get.SignResultRequest;
 import com.verisec.frejaeid.client.beans.sign.init.DataToSign;
 import com.verisec.frejaeid.client.beans.sign.init.InitiateSignRequest;
+import com.verisec.frejaeid.client.beans.usermanagement.customidentifier.set.SetCustomIdentifierRequest;
+import com.verisec.frejaeid.client.client.api.CustomIdentifierClientApi;
 import com.verisec.frejaeid.client.client.api.SignClientApi;
+import com.verisec.frejaeid.client.client.impl.CustomIdentifierClient;
 import com.verisec.frejaeid.client.client.impl.SignClient;
 import com.verisec.frejaeid.client.enums.AttributeToReturn;
 import com.verisec.frejaeid.client.enums.Country;
@@ -51,17 +53,27 @@ public class Main {
 
         AuthenticationResult result = authenticationClient.pollForResult(AuthenticationResultRequest.create(reference,"verisec_1"), maxWaitingTimeInSeconds);
         System.out.println(result);
-*/      SslSettings sslSettings = SslSettings.create("src/main/resources/relyingparty_keystore.p12", "123123123");
+*/      
+        String relyingPartyId = "verisec_1";
+        SslSettings sslSettings = SslSettings.create("src/main/resources/relyingparty_keystore.p12", "123123123");
         SignClientApi signClient = SignClient.create(sslSettings, FrejaEnvironment.TEST).setTestModeCustomUrl("https://services-st.test.frejaeid.com").setTransactionContext(TransactionContext.PERSONAL).build();
+        SetCustomIdentifierRequest setCustomIdentifierRequest = SetCustomIdentifierRequest.createCustom()
+						  .setEmailAndCustomIdentifier("aleksandar.markovic@verisec.com", "jmetter")
+						  .setRelyingPartyId(relyingPartyId)
+						  .build();
+        CustomIdentifierClientApi identifierClientApi = CustomIdentifierClient.create(sslSettings, FrejaEnvironment.TEST).setTestModeCustomUrl("https://services-st.test.frejaeid.com").setTransactionContext(TransactionContext.ORGANISATIONAL).build();
+        identifierClientApi.set(setCustomIdentifierRequest);
         SsnUserInfo ssn = SsnUserInfo.create(Country.SWEDEN, "199110043172");
         String dataToSignText = "Would you like to transfer 1000 EUR from account A to account B?";
         byte[] dataToSignBinaryData = "Binary data, not presented to the user.".getBytes(StandardCharsets.UTF_8);
         DataToSign dataToSign = DataToSign.create(dataToSignText, dataToSignBinaryData);
+
         AttributeToReturn[] attributes = {AttributeToReturn.BASIC_USER_INFO,
                                   AttributeToReturn.EMAIL_ADDRESS,
                                   AttributeToReturn.DATE_OF_BIRTH,
                                   AttributeToReturn.RELYING_PARTY_USER_ID,
-                                  AttributeToReturn.SSN};
+                                  AttributeToReturn.SSN,
+                                  AttributeToReturn.CUSTOM_IDENTIFIER};
         InitiateSignRequest initSignRequest = InitiateSignRequest.createCustom()
                   .setEmail("aleksandar.markovic@verisec.com")
                   .setDataToSign(dataToSign)
@@ -70,13 +82,13 @@ public class Main {
                   .setAttributesToReturn(attributes)
                //   .setPushNotification(pushNotification)
                   .setTitle("Potvrdi transakciju")
-                  .setRelyingPartyId("verisec_1")
+                  .setRelyingPartyId(relyingPartyId)
                   .build();
         String reference = signClient.initiate(initSignRequest);
         
         int maxWaitingTimeInSeconds = 60;
         
-        SignResult result = signClient.pollForResult(SignResultRequest.create(reference, "verisec_1"), maxWaitingTimeInSeconds);
+        SignResult result = signClient.pollForResult(SignResultRequest.create(reference,relyingPartyId), maxWaitingTimeInSeconds);
         System.out.println(result.getRequestedAttributes());
     }
 }
